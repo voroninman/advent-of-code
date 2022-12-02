@@ -39,4 +39,3 @@ solve_1("input_1.txt")
 
 solve_2("input_test_1.txt")
 solve_2("input_1.txt")
-
