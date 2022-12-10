@@ -31,7 +31,7 @@ function jump(state, char, to)
         state = hcat(state, reshape([['.'] for _ in 1:size(state)[1]], size(state)[1], 1))
     end
 
-    if char == 'T'
+    if char == '9'
         push!(state[to...], '#')
     end
 
@@ -39,43 +39,64 @@ function jump(state, char, to)
     state
 end
 
+order = "H123456789"
+
 function move(state, direction)
     head = find(state, 'H')
     state = jump(state, 'H', head .+ direction)
 
-    head = find(state, 'H')
-    tail = find(state, 'T')
-    distance = head .- tail
+    for (head_char, tail_char) in zip(order, order[2:end])
+        new_head = find(state, head_char)
+        tail = find(state, tail_char)
+        distance = new_head .- tail
 
-    if !is_close(distance)
+        # display_state_full(state)
+        # println("Move $(!is_close(distance)) tail:$tail_char@$tail to head:$head_char@$head at $distance")
 
-        if direction == down && distance == down .+ right_down
-            direction = direction .+ right
-        elseif direction == down && distance == down .+ left_down
-            direction = direction .+ left
-        elseif direction == up && distance == up .+ right_up
-            direction = direction .+ right
-        elseif direction == up && distance == up .+ left_up
-            direction = direction .+ left
-        elseif direction == left && distance == left .+ left_down
-            direction = direction .+ down
-        elseif direction == left && distance == left .+ left_up
-            direction = direction .+ up
-        elseif direction == right && distance == right .+ right_down
-            direction = direction .+ down
-        elseif direction == right && distance == right .+ right_up
-            direction = direction .+ up
+        if !is_close(distance)
+
+            if direction == down && distance == down .+ right_down
+                direction = direction .+ right
+            elseif direction == down && distance == down .+ left_down
+                direction = direction .+ left
+            elseif direction == up && distance == up .+ right_up
+                direction = direction .+ right
+            elseif direction == up && distance == up .+ left_up
+                direction = direction .+ left
+            elseif direction == left && distance == left .+ left_down
+                direction = direction .+ down
+            elseif direction == left && distance == left .+ left_up
+                direction = direction .+ up
+            elseif direction == right && distance == right .+ right_down
+                direction = direction .+ down
+            elseif direction == right && distance == right .+ right_up
+                direction = direction .+ up
+            end
+
+            state = jump(state, tail_char, tail .+ direction)
         end
-
-        state = jump(state, 'T', tail .+ direction)
     end
     state
 end
 
-state = to_matrix("""...\n...\n...""")
-state[end,1] = ['.', '#', 'T', 'H']
-
 function display_state(state)
+    function top_char(chars)
+        for char in "$order#."
+            if char in chars
+                return char
+            end
+        end
+    end
+
+    state .|>
+        (x -> top_char(x)) |>
+        eachrow .|>
+        (x -> join(x, " ")) |>
+        (x -> join(x, "\n")) |>
+        (x -> (println(repeat('-', 80)); println(x)))
+end
+
+function display_state_full(state)
     state .|>
         join .|>
         (x -> lpad(x, (state .|> length |> maximum) + 1, ' ')) |>
@@ -85,28 +106,31 @@ function display_state(state)
         (x -> (println(repeat('-', 80)); println(x)))
 end
 
-function top_char(chars)
-    for char in "HT#."
-        if char in chars
-            return char
-        end
-    end
-end
+state = to_matrix("""
+.....H
+.....1
+.....2
+.....3
+....54
+...6..
+..7...
+.8....
+9.....
+""")
+display(state)
+display_state(state)
 
-function display_state(state)
-    state .|>
-        (x -> top_char(x)) |>
-        eachrow .|>
-        (x -> join(x, " ")) |>
-        (x -> join(x, "\n")) |>
-        (x -> (println(repeat('-', 80)); println(x)))
-end
+# state[end,1] = collect("H123456789#.")
 
-for (cmd_dir, cmd_times) in parse_cmds("input.txt")
+for (cmd_dir, cmd_times) in parse_cmds("input_test.txt")
     for i in 1:cmd_times
         direction = cmd_mapping[cmd_dir]
         global state = move(state, direction)
-        # display_state(state)
+        display_state(state)
     end
 end
+# display_state(state)
 println(state .|> (x -> '#' in x) |> sum)
+
+
+# 2418 is too low.
