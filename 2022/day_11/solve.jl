@@ -1,53 +1,41 @@
-function parse_block(block)
-    inventory = split(block[1], ":")[2] |> (x -> split(strip(x), ", ")) .|> (x -> parse(Int, x)) .|> (x -> convert(BigInt, x)) |> (x -> x)
-    f = split(block[2], "=")[2] |>
-        (x -> split(strip(x), " ")) |>
-        (((lh, op, rh),) ->
-            (x) -> (op == "*" ? ((a, b) -> a * b) : ((a, b) -> a + b))(
-                x,
-                rh == "old" ? x : parse(Int, rh)
-            )
-        )
-    test = split(block[3], "by")[2] |>
-           (x -> parse(Int, x)) |> (by -> (x) -> rem(x, by) == 0)
-    if_true = split(block[4], " ")[end] |> x -> parse(Int, x)
-    if_false = split(block[5], " ")[end] |> x -> parse(Int, x)
-    inventory, f, test, if_true, if_false
-end
+ops = Dict("*" => *, "+" => +)
+chunk(list, parts) = Iterators.partition(1:length(list), parts)
 
-function solve_1(input)
+parse_block(lines) = string(lines[1][end-1]), Dict(
+    :items => split(lines[2], ":")[2] |>
+        (x -> split(x, ", ")) .|>
+        x -> parse(Int, x),
+    :f => split(lines[3])[end-1:end] |>
+            (((op, rh),) -> (x -> ops[op](x, rh == "old" ? x : parse(Int, rh)))),
+    :div => split(lines[4])[end] |>
+        x -> parse(Int, x),
+    :if_true => split(lines[5])[end],
+    :if_false => split(lines[6])[end],
+    :count => 0,
+)
+
+function solve(input; n, extra_f=x -> x)
     lines = readlines(input)
-    monkeys = lines |>
-              x -> 1:(length(lines)+1)/7 .|>
-                   (x -> convert(Int, x)) .|>
-                   (x -> lines[(x-1)*7+2:(x-1)*7+6]) .|>
-                   parse_block |>
-                   x -> Dict(zip(0:length(x)-1, x))
+    monkeys = chunk(lines, 7) .|> (range -> parse_block(lines[range])) |> Dict
+    common_div = reduce(*, [monkey[:div] for (_, monkey) in monkeys])
 
-    counts = [Set() for _ in 1:length(keys(monkeys))]
-
-    for round in 1:20
-        for monkey in 0:(length(keys(monkeys))-1)
-            inventory, f, test, if_true, if_false = monkeys[monkey]
-            for item in inventory
-                push!(counts[monkey+1], item)
-                new_item = f(item)
-                if test(new_item)
-                    push!(monkeys[if_true][1], new_item)
-                else
-                    push!(monkeys[if_false][1], new_item)
-                end
+    for _ in 1:n
+        for i in sort(collect(keys(monkeys)))
+            monkey = monkeys[i]
+            for item in monkey[:items]
+                monkey[:count] += 1
+                item = mod(extra_f(monkey[:f](item)), common_div)
+                to = mod(item, monkey[:div]) == 0 ? monkey[:if_true] : monkey[:if_false]
+                push!(monkeys[to][:items], item)
             end
-            monkeys[monkey] = [], monkeys[monkey][2:end]...
-        end
-        if round in [1, 20, 1_000, 2_000]
-            println("ROUND: $round $(counts .|> length))")
+            monkey[:items] = []
         end
     end
+    monkeys |> keys .|> (x -> monkeys[x][:count]) |> sort |> (x -> x[end] * x[end-1])
 end
 
-solve_1("input_test.txt")
-# println(solve_1("input.txt"))
+println(solve("input_test.txt", n=20, extra_f=x -> floor(x / 3)))
+println(solve("input.txt", n=20, extra_f=x -> floor(x / 3)))
 
-# println(solve_2("input_test.txt"))
-# println(solve_2("input.txt"))
+println(solve("input_test.txt", n=10_000))
+println(solve("input.txt", n=10_000))
