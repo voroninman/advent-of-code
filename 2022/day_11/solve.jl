@@ -31,7 +31,7 @@ function solve(input; n, extra_f=x -> x)
             monkey[:items] = []
         end
     end
-    monkeys |> keys .|> (x -> monkeys[x][:count]) |> sort |> (x -> x[end] * x[end-1])
+    monkeys |> values .|> (x -> x[:count]) |> sort |> (x -> x[end] * x[end-1])
 end
 
 println(solve("input_test.txt", n=20, extra_f=x -> floor(x / 3)))
