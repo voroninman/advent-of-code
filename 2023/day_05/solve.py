@@ -16,23 +16,26 @@ def solve1(input_file):
         for match in re.findall(r"map:\n((?:\d+ \d+ \d+\n?)+)", data, re.DOTALL)
     ]
 
-    niddle = None
+    minimum = 9999999999999
+    needle = None
     for seed in seeds:
-        niddle = seed
+        needle = seed
         for mappings in layers:
-            found = False
             for mapping in mappings:
-                print(f"{mapping[1]} <= {seed} <= {mapping[1] + mapping[2] - 1}")
-                if mapping[1] <= seed <= mapping[0] + mapping[2] - 1:
-                    found = True
-
-                    niddle = seed + mapping[2] + 1
-                    print("new niddle", niddle)
+                source_start = mapping[1]
+                destination_start = mapping[0]
+                range_length = mapping[2]
+                source_end = source_start + range_length - 1
+                offset = needle - source_start
+                if source_start <= needle <= source_end:
+                    new_needle = destination_start + offset
+                    needle = new_needle
                     break
-        print(niddle)
+        minimum = min(minimum, needle)
+    return minimum
 
 
 print(solve1("example.txt"))
-# print(solve1("input.txt"))
+print(solve1("input.txt"))
 # print(solve2("example.txt"))
 # print(solve2("input.txt"))
