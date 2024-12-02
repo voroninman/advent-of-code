@@ -1,32 +1,17 @@
-require "pp"
-
-def is_safe(line)
-  x = line.zip(line.drop(1))[0..-2].map { |pair| pair.reduce(:-) }.uniq
-  x.difference([1, 2, 3]).length == 0 || x.difference([-1, -2, -3]).length == 0
+def is_safe?(line)
+  differences = line.each_cons(2).map { |a, b| b - a }.uniq
+  differences.difference([1, 2, 3]).empty? || differences.difference([-1, -2, -3]).empty?
 end
 
 def variants(line)
-  [line] + (0..line.length - 1).map do |i|
-    copy = line.dup
-    copy.delete_at(i)
-    copy
+  line.each_index.map do |i|
+    line.dup.tap { |copy| copy.delete_at(i) }
   end
 end
 
-puts(
-  File
-    .readlines("input.txt")
-    .map(&:chomp)
-    .map { |line| line.split.map(&:to_i) }
-    .map
-) do |line|
-  variants(line).map do |v|
-    if is_safe(v)
-      break true
-    end
-
-    false
-  end
-end
-  .flatten
+puts File
+  .readlines('input.txt')
+  .map(&:chomp)
+  .map { |line| line.split.map(&:to_i) }
+  .map { |line| variants(line).any? { |variant| is_safe?(variant) } }
   .count(true)
