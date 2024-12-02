@@ -1,0 +1,1 @@
+input = File.readlines('example.txt').map(&:chomp)
